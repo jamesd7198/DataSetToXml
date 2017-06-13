@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
 
 namespace DataSetToXml.AppSettingsHelper
 {
@@ -8,14 +9,23 @@ namespace DataSetToXml.AppSettingsHelper
 
         string GetConnectionString(string name)
         {
-            var value = ConfigurationManager.ConnectionStrings[name].ConnectionString;
+            var connStr = string.Empty;
 
-            if (string.IsNullOrWhiteSpace(value))
+            try
+            {
+                connStr = ConfigurationManager.ConnectionStrings[name].ConnectionString;
+            }
+            catch
+            {
+                // ignored
+            }
+
+            if (string.IsNullOrWhiteSpace(connStr))
             {
                 throw new ConfigurationErrorsException($"ConnectionString named '{name}' was not configured in the configuration file.");
             }
 
-            return value;
+            return connStr;
         }
 
     }

@@ -10,20 +10,31 @@ using TestStack.BDDfy;
 namespace DataSetToXml.Tests
 {
     [TestClass]
-    public class ShouldWriteLoadedDataToXmlFile
+    public class ShouldWriteDataSetToXmlFile
     {
         [TestMethod]
-        public void VerifyXmlFileIsCreated()
+        public void VerifyXmlFileIsCreatedByQuery()
         {
-            this.Given(t => GivenSqlDbTableWith3Rows())
-                .And(t => GivenDbTableIsLoaded())
-                .When(t => WhenWritingTableToXmlFile())
+            this.Given(t => GivenSqlDbWithMakesAndModels())
+                .And(t => GivenDataSetIsLoadedByQuery())
+                .When(t => WhenWritingDataSetToXmlFile(@"C:\temp\test_makes.xml"))
                 .Then(t => ThenXmlFileShouldExist())
-                .And(t => ThenXmlFileShouldHaveFordChevyAndDodge())
+                .And(t => ThenXmlFileShouldHaveFord())
                 .BDDfy();
         }
 
-        void GivenSqlDbTableWith3Rows()
+        [TestMethod]
+        public void VerifyXmlFileIsCreatedByProcedure()
+        {
+            this.Given(t => GivenSqlDbWithMakesAndModels())
+                .And(t => GivenDataSetIsLoadedByProcedure())
+                .When(t => WhenWritingDataSetToXmlFile(@"C:\temp\test_makes.xml"))
+                .Then(t => ThenXmlFileShouldExist())
+                .And(t => ThenXmlFileShouldHaveF150())
+                .BDDfy();
+        }
+
+        void GivenSqlDbWithMakesAndModels()
         {
             _appSettings = new AppSettings();
 
@@ -33,24 +44,29 @@ namespace DataSetToXml.Tests
                 new SqlDataAdapter());
         }
 
-        void GivenDbTableIsLoaded()
+        void GivenDataSetIsLoadedByQuery()
         {
-            _dataTable = DataLoader.LoadTableFromDb(_dataSettings, "test_makes")[0];
+            _dataSet = DataLoader.LoadDataSetFromQuery(_dataSettings, "select * from test_makes");
         }
 
-        void WhenWritingTableToXmlFile()
+        void GivenDataSetIsLoadedByProcedure()
         {
-            DataWriter.WriteTableToXmlFile(_dataTable, @"C:\temp\test_makes.xml");
+            _dataSettings.AddParameter(new SqlParameter("@make", "Ford"));
+
+            _dataSet = DataLoader.LoadDataSetFromProcedure(_dataSettings, "getModelsByMake");
+        }
+
+        void WhenWritingDataSetToXmlFile(string filename)
+        {
+            DataWriter.WriteDataSetToXmlFile(_dataSet, filename);
         }
 
         void ThenXmlFileShouldExist()
         {
-            var fileInfo = new FileInfo(@"C:\temp\test_makes.xml");
-
-            Assert.IsTrue(fileInfo.Exists);
+            Assert.IsTrue(File.Exists(@"C:\temp\test_makes.xml"));
         }
 
-        void ThenXmlFileShouldHaveFordChevyAndDodge()
+        void ThenXmlFileShouldHaveFord()
         {
             var xmlDoc = new XmlDocument();
             xmlDoc.Load(@"C:\temp\test_makes.xml");
@@ -61,7 +77,18 @@ namespace DataSetToXml.Tests
             Assert.AreEqual("Ford", node.ChildNodes[1].InnerText);
         }
 
-        DataTable _dataTable;
+        void ThenXmlFileShouldHaveF150()
+        {
+            var xmlDoc = new XmlDocument();
+            xmlDoc.Load(@"C:\temp\test_makes.xml");
+
+            var node = xmlDoc.SelectSingleNode("//Table[name='F150']");
+
+            Assert.IsNotNull(node);
+            Assert.AreEqual("F150", node.ChildNodes[1].InnerText);
+        }
+
+        DataSet _dataSet;
         IAppSettings _appSettings;
         IDataSettings _dataSettings;
     }
@@ -72,14 +99,24 @@ namespace DataSetToXml.Tests
         [TestMethod]
         public void VerifyXsdFileIsCreated()
         {
-            this.Given(t => GivenSqlDbTableWith3Rows())
-                .And(t => GivenDbTableIsLoaded())
-                .When(t => WhenWritingSchemaToXsdFile())
-                .Then(t => ThenXsdFileShouldExist())
+            this.Given(t => GivenSqlDbWithMakesAndModels())
+                .And(t => GivenDataSetIsLoadedFromQuery())
+                .When(t => WhenWritingSchemaToXsdFile(@"C:\temp\test_makes.xsd"))
+                .Then(t => ThenXsdFileShouldExist(@"C:\temp\test_makes.xsd"))
                 .BDDfy();
         }
 
-        void GivenSqlDbTableWith3Rows()
+        [TestMethod]
+        public void VerifyXsdFileIsCreatedWithMultipleTables()
+        {
+            this.Given(t => GivenSqlDbWithMakesAndModels())
+                .And(t => GivenMultipleTablesAreLoadedFromQuery())
+                .When(t => WhenWritingSchemaToXsdFile(@"C:\temp\test_makes_and_models.xsd"))
+                .Then(t => ThenXsdFileShouldExist(@"C:\temp\test_makes_and_models.xsd"))
+                .BDDfy();
+        }
+
+        void GivenSqlDbWithMakesAndModels()
         {
             _appSettings = new AppSettings();
 
@@ -89,24 +126,87 @@ namespace DataSetToXml.Tests
                 new SqlDataAdapter());
         }
 
-        void GivenDbTableIsLoaded()
+        void GivenDataSetIsLoadedFromQuery()
         {
-            _dataTable = DataLoader.LoadTableFromDb(_dataSettings, "test_makes")[0];
+            _dataSet = DataLoader.LoadDataSetFromQuery(_dataSettings, "select * from test_makes");
         }
 
-        void WhenWritingSchemaToXsdFile()
+        void GivenMultipleTablesAreLoadedFromQuery()
         {
-            DataWriter.WriteSchemaToXsdFile(_dataTable, @"C:\temp\test_makes.xsd");
+            _dataSet = DataLoader.LoadDataSetFromQuery(_dataSettings, "select * from test_makes;select * from test_models");
         }
 
-        void ThenXsdFileShouldExist()
+        void WhenWritingSchemaToXsdFile(string filename)
         {
-            var fileInfo = new FileInfo(@"C:\temp\test_makes.xsd");
+            DataWriter.WriteSchemaToXsdFile(_dataSet, filename);
+        }
+
+        void ThenXsdFileShouldExist(string filename)
+        {
+            Assert.IsTrue(File.Exists(filename));
+        }
+        
+        DataSet _dataSet;
+        IAppSettings _appSettings;
+        IDataSettings _dataSettings;
+    }
+
+    [TestClass]
+    public class ShouldWriteMultipleTablesToXmlFile
+    {
+        [TestMethod]
+        public void VerifyXmlWith2TablesIsCreatedByQuery()
+        {
+            this.Given(t => GivenSqlDbWithMakesAndModels())
+                .And(t => GivenDataSetIsLoadedByQuery())
+                .When(t => WhenWritingDataSetToXmlFile(@"C:\temp\two_table_test_query_results.xml"))
+                .Then(t => ThenXmlFileShouldExist())
+                .BDDfy();
+        }
+
+        [TestMethod]
+        public void VerifyXmlWith2TablesIsCreatedByProcedure()
+        {
+            this.Given(t => GivenSqlDbWithMakesAndModels())
+                .And(t => GivenDataSetIsLoadedByProcedure())
+                .When(t => WhenWritingDataSetToXmlFile(@"C:\temp\two_table_test_sproc_results.xml"))
+                .Then(t => ThenXmlFileShouldExist())
+                .BDDfy();
+        }
+
+        void GivenSqlDbWithMakesAndModels()
+        {
+            _appSettings = new AppSettings();
+
+            _dataSettings = new DataSettings(
+                new SqlConnection(_appSettings.ConnectionString("SqlDb")),
+                new SqlCommand(),
+                new SqlDataAdapter());
+        }
+
+        void GivenDataSetIsLoadedByQuery()
+        {
+            _dataSet = DataLoader.LoadDataSetFromQuery(_dataSettings, "select * from test_makes; select * from test_models");
+        }
+
+        void GivenDataSetIsLoadedByProcedure()
+        {
+            _dataSet = DataLoader.LoadDataSetFromProcedure(_dataSettings, "getFordAndDodgeInTwoTables");
+        }
+        
+        void WhenWritingDataSetToXmlFile(string filename)
+        {
+            DataWriter.WriteDataSetToXmlFile(_dataSet, filename);
+        }
+
+        void ThenXmlFileShouldExist()
+        {
+            var fileInfo = new FileInfo(@"C:\temp\makes_and_models.xml");
 
             Assert.IsTrue(fileInfo.Exists);
         }
-        
-        DataTable _dataTable;
+
+        DataSet _dataSet;
         IAppSettings _appSettings;
         IDataSettings _dataSettings;
     }

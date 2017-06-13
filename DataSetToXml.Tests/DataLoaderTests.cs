@@ -9,152 +9,146 @@ using Npgsql;
 namespace DataSetToXml.Tests
 {
     [TestClass]
-    public class ShouldLoadFromTableInNpgSqlDb
+    public class ShouldLoadDatSetFromNpgSqlDb
     {
         [TestMethod]
-        public void VerifyTestDataFromTableLoaded()
+        public void VerifyDataSetLoadedByQuery()
         {
-            this.Given(t => GivenNpgSqlDbTableWith3Rows())
-                .When(t => WhenDbTableIsLoaded())
+            this.Given(t => GivenNpgSqlDbWithMakesAndModels())
+                .When(t => WhenDataSetIsLoadedByQuery())
                 .Then(t => ThenTableShouldHave3Rows())
                 .And(t => ThenTableShouldHaveFordChevyAndDodge())
                 .BDDfy();
         }
 
-        void GivenNpgSqlDbTableWith3Rows()
+        [TestMethod]
+        public void VerifyDataSetLoadedByProcedure()
+        {
+            this.Given(t => GivenNpgSqlDbWithMakesAndModels())
+                .When(t => WhenDataSetIsLoadedByProcedure())
+                .Then(t => ThenTableShouldHave3Rows())
+                .And(t => ThenTableShouldHaveFordModels())
+                .BDDfy();
+        }
+
+        //TODO: The current test function in PG database returns both selects from function as one table
+        //[TestMethod]
+        //public void VerifyMultipleTablesAreLoadedByProcedure()
+        //{
+        //    this.Given(t => GivenNpgSqlDbWithMakesAndModels())
+        //        .When(t => WhenMultipleTablesAreLoadedByProcedure())
+        //        .Then(t => ThenDataSetShouldHave2Tables())
+        //        .And(t => ThenTableShouldHaveFordModels())
+        //        .And(t => ThenSecondTableShouldHaveDodgeModels())
+        //        .BDDfy();
+        //}
+
+        void GivenNpgSqlDbWithMakesAndModels()
         {
             _appSettings = new AppSettings();
 
             _dataSettings = new DataSettings(
-                new NpgsqlConnection(_appSettings.ConnectionString("NpgSqlDb")), 
+                new NpgsqlConnection(_appSettings.ConnectionString("NpgSqlDb")),
                 new NpgsqlCommand(),
                 new NpgsqlDataAdapter());
         }
 
-        void WhenDbTableIsLoaded()
+        void WhenDataSetIsLoadedByQuery()
         {
-            _dataTable = DataLoader.LoadTableFromDb(_dataSettings, "test_makes")[0];
+            _dataSet = DataLoader.LoadDataSetFromQuery(_dataSettings, "select * from test_makes");
+        }
+
+        void WhenDataSetIsLoadedByProcedure()
+        {
+            _dataSettings.AddParameter(new NpgsqlParameter("make", "Ford"));
+
+            _dataSet = DataLoader.LoadDataSetFromProcedure(_dataSettings, "getModelsByMake");
+        }
+
+        void WhenMultipleTablesAreLoadedByProcedure()
+        {
+            _dataSet = DataLoader.LoadDataSetFromProcedure(_dataSettings, "getFordAndDodgeInTwoTables");
         }
 
         void ThenTableShouldHave3Rows()
         {
-            Assert.AreEqual(3, _dataTable.Rows.Count);
+            var table = _dataSet.Tables[0];
+
+            Assert.AreEqual(3, table.Rows.Count);
         }
 
         void ThenTableShouldHaveFordChevyAndDodge()
         {
-            Assert.AreEqual("Ford", _dataTable.Rows[0].ItemArray[1]);
-            Assert.AreEqual("Chevy", _dataTable.Rows[1].ItemArray[1]);
-            Assert.AreEqual("Dodge", _dataTable.Rows[2].ItemArray[1]);
+            var table = _dataSet.Tables[0];
+
+            Assert.AreEqual("Ford", table.Rows[0].ItemArray[1]);
+            Assert.AreEqual("Chevy", table.Rows[1].ItemArray[1]);
+            Assert.AreEqual("Dodge", table.Rows[2].ItemArray[1]);
         }
 
-        DataTable _dataTable;
+        void ThenTableShouldHaveFordModels()
+        {
+            var table = _dataSet.Tables[0];
+
+            Assert.AreEqual("F150", table.Rows[0].ItemArray[1]);
+            Assert.AreEqual("Mustang", table.Rows[1].ItemArray[1]);
+            Assert.AreEqual("Taurus", table.Rows[2].ItemArray[1]);
+        }
+
+        void ThenDataSetShouldHave2Tables()
+        {
+            Assert.AreEqual(2, _dataSet.Tables.Count);
+        }
+
+        void ThenSecondTableShouldHaveDodgeModels()
+        {
+            var table = _dataSet.Tables[1];
+
+            Assert.AreEqual("Ram", table.Rows[0].ItemArray[1]);
+            Assert.AreEqual("Challenger", table.Rows[1].ItemArray[1]);
+            Assert.AreEqual("Charger", table.Rows[2].ItemArray[1]);
+        }
+
+        DataSet _dataSet;
         IAppSettings _appSettings;
         IDataSettings _dataSettings;
     }
-
+   
     [TestClass]
-    public class ShouldLoadFromQueryInNpgSqlDb
+    public class ShouldLoadDatSetFromSqlDb
     {
         [TestMethod]
-        public void VerifyTestDataFromTableLoaded()
+        public void VerifyDataSetLoadedByQuery()
         {
-            this.Given(t => GivenNpgSqlDbTableWith3Rows())
-                .When(t => WhenQueryResultFor1RowIsLoaded())
-                .Then(t => ThenTableShouldHave1Row())
-                .And(t => ThenTableShouldHaveFord())
-                .BDDfy();
-        }
-
-        void GivenNpgSqlDbTableWith3Rows()
-        {
-            _appSettings = new AppSettings();
-
-            _dataSettings = new DataSettings(
-                new NpgsqlConnection(_appSettings.ConnectionString("NpgSqlDb")),
-                new NpgsqlCommand(),
-                new NpgsqlDataAdapter());
-        }
-
-        void WhenQueryResultFor1RowIsLoaded()
-        {
-            _dataTable = DataLoader.LoadTableFromQuery(_dataSettings, "select * from test_makes limit 1")[0];
-        }
-
-        void ThenTableShouldHave1Row()
-        {
-            Assert.AreEqual(1, _dataTable.Rows.Count);
-        }
-
-        void ThenTableShouldHaveFord()
-        {
-            Assert.AreEqual("Ford", _dataTable.Rows[0].ItemArray[1]);
-        }
-
-        DataTable _dataTable;
-        IAppSettings _appSettings;
-        IDataSettings _dataSettings;
-    }
-
-    [TestClass]
-    public class ShouldLoadFromProcedureInNpgSqlDb
-    {
-        [TestMethod]
-        public void VerifyTestDataFromTableLoaded()
-        {
-            this.Given(t => GivenNpgSqlDbTableWith3Rows())
-                .When(t => WhenQueryResultFor1RowIsLoaded())
-                .Then(t => ThenTableShouldHave3Rows())
-                .And(t => ThenTableShouldHaveFord())
-                .BDDfy();
-        }
-
-        void GivenNpgSqlDbTableWith3Rows()
-        {
-            _appSettings = new AppSettings();
-
-            _dataSettings = new DataSettings(
-                new NpgsqlConnection(_appSettings.ConnectionString("NpgSqlDb")),
-                new NpgsqlCommand(),
-                new NpgsqlDataAdapter());
-        }
-
-        void WhenQueryResultFor1RowIsLoaded()
-        {
-            _dataTable = DataLoader.LoadTableFromProcedure(_dataSettings, "get_all_fords")[0];
-        }
-
-        void ThenTableShouldHave3Rows()
-        {
-            Assert.AreEqual(3, _dataTable.Rows.Count);
-        }
-
-        void ThenTableShouldHaveFord()
-        {
-            Assert.AreEqual("F150", _dataTable.Rows[0].ItemArray[1]);
-            Assert.AreEqual("Mustang", _dataTable.Rows[1].ItemArray[1]);
-            Assert.AreEqual("Taurus", _dataTable.Rows[2].ItemArray[1]);
-        }
-
-        DataTable _dataTable;
-        IAppSettings _appSettings;
-        IDataSettings _dataSettings;
-    }
-
-    [TestClass]
-    public class ShouldLoadFromTableInSqlDb
-    {
-        [TestMethod]
-        public void VerifyTestDataFromTableLoaded()
-        {
-            this.Given(t => GivenSqlDbTableWith3Rows())
-                .When(t => WhenDbTableIsLoaded())
+            this.Given(t => GivenSqlDbWithMakesAndModels())
+                .When(t => WhenDataSetIsLoadedByQuery())
                 .Then(t => ThenTableShouldHave3Rows())
                 .And(t => ThenTableShouldHaveFordChevyAndDodge())
                 .BDDfy();
         }
 
-        void GivenSqlDbTableWith3Rows()
+        [TestMethod]
+        public void VerifyDataSetLoadedByProcedure()
+        {
+            this.Given(t => GivenSqlDbWithMakesAndModels())
+                .When(t => WhenDataSetIsLoadedByProcedure())
+                .Then(t => ThenTableShouldHave3Rows())
+                .And(t => ThenTableShouldHaveFordModels())
+                .BDDfy();
+        }
+
+        [TestMethod]
+        public void VerifyMultipleTablesAreLoadedByProcedure()
+        {
+            this.Given(t => GivenSqlDbWithMakesAndModels())
+                .When(t => WhenMultipleTablesAreLoadedByProcedure())
+                .Then(t => ThenDataSetShouldHave2Tables())
+                .And(t => ThenTableShouldHaveFordModels())
+                .And(t => ThenSecondTableShouldHaveDodgeModels())
+                .BDDfy();
+        }
+
+        void GivenSqlDbWithMakesAndModels()
         {
             _appSettings = new AppSettings();
 
@@ -164,24 +158,63 @@ namespace DataSetToXml.Tests
                 new SqlDataAdapter());
         }
 
-        void WhenDbTableIsLoaded()
+        void WhenDataSetIsLoadedByQuery()
         {
-            _dataTable = DataLoader.LoadTableFromDb(_dataSettings, "test_makes")[0];
+            _dataSet = DataLoader.LoadDataSetFromQuery(_dataSettings, "select * from test_makes");
+        }
+
+        void WhenDataSetIsLoadedByProcedure()
+        {
+            _dataSettings.AddParameter(new SqlParameter("@make", "Ford"));
+
+            _dataSet = DataLoader.LoadDataSetFromProcedure(_dataSettings, "getModelsByMake");
+        }
+
+        void WhenMultipleTablesAreLoadedByProcedure()
+        {
+            _dataSet = DataLoader.LoadDataSetFromProcedure(_dataSettings, "getFordAndDodgeInTwoTables");
         }
 
         void ThenTableShouldHave3Rows()
         {
-            Assert.AreEqual(3, _dataTable.Rows.Count);
+            var table = _dataSet.Tables[0];
+
+            Assert.AreEqual(3, table.Rows.Count);
         }
 
         void ThenTableShouldHaveFordChevyAndDodge()
         {
-            Assert.AreEqual("Ford", _dataTable.Rows[0].ItemArray[1]);
-            Assert.AreEqual("Chevy", _dataTable.Rows[1].ItemArray[1]);
-            Assert.AreEqual("Dodge", _dataTable.Rows[2].ItemArray[1]);
+            var table = _dataSet.Tables[0];
+
+            Assert.AreEqual("Ford", table.Rows[0].ItemArray[1]);
+            Assert.AreEqual("Chevy", table.Rows[1].ItemArray[1]);
+            Assert.AreEqual("Dodge", table.Rows[2].ItemArray[1]);
         }
 
-        DataTable _dataTable;
+        void ThenTableShouldHaveFordModels()
+        {
+            var table = _dataSet.Tables[0];
+
+            Assert.AreEqual("F150", table.Rows[0].ItemArray[1]);
+            Assert.AreEqual("Mustang", table.Rows[1].ItemArray[1]);
+            Assert.AreEqual("Taurus", table.Rows[2].ItemArray[1]);
+        }
+
+        void ThenDataSetShouldHave2Tables()
+        {
+            Assert.AreEqual(2, _dataSet.Tables.Count);
+        }
+
+        void ThenSecondTableShouldHaveDodgeModels()
+        {
+            var table = _dataSet.Tables[1];
+
+            Assert.AreEqual("Ram", table.Rows[0].ItemArray[1]);
+            Assert.AreEqual("Challenger", table.Rows[1].ItemArray[1]);
+            Assert.AreEqual("Charger", table.Rows[2].ItemArray[1]);
+        }
+
+        DataSet _dataSet;
         IAppSettings _appSettings;
         IDataSettings _dataSettings;
     }
