@@ -6,58 +6,52 @@ namespace DataSetToXml
 {
     public class DataLoader
     {
-        public static DataTable LoadTableFromXml(Stream xmlSchemaStream, Stream xmlDataStream)
+        public static DataSet LoadTableFromXml(Stream xmlSchemaStream, Stream xmlDataStream)
         {
             var dataSet = new DataSet { EnforceConstraints = false };
 
             dataSet.ReadXmlSchema(xmlSchemaStream);
             dataSet.ReadXml(xmlDataStream);
 
-            return dataSet.Tables[0];
+            return dataSet;
         }
-
-        public static DataTableCollection LoadTableFromDb(IDataSettings dataProvider, string tableName)
-        {
-            return LoadTableFromQuery(dataProvider, $"select * from {tableName}");
-        }
-
-        public static DataTableCollection LoadTableFromQuery(IDataSettings dataProvider, string sql)
+        
+        public static DataSet LoadDataSetFromQuery(IDataSettings dataSettings, string sql)
         {
             var dataSet = new DataSet();
 
-            using (dataProvider)
+            using (dataSettings)
             {
-                dataProvider.Command.Connection = dataProvider.Connection;
-                dataProvider.Command.CommandType = CommandType.Text;
-                dataProvider.Command.CommandText = sql;   
+                dataSettings.Command.Connection = dataSettings.Connection;
+                dataSettings.Command.CommandType = CommandType.Text;
+                dataSettings.Command.CommandText = sql;
 
-                dataProvider.Connection.Open();
+                dataSettings.Connection.Open();
 
-                dataProvider.Adapter.SelectCommand = dataProvider.Command;
-                dataProvider.Adapter.Fill(dataSet);
+                dataSettings.Adapter.SelectCommand = dataSettings.Command;
+                dataSettings.Adapter.Fill(dataSet);
             }
 
-            return dataSet.Tables;
+            return dataSet;
         }
 
-        public static DataTableCollection LoadTableFromProcedure(IDataSettings dataProvider, string procedure)
+        public static DataSet LoadDataSetFromProcedure(IDataSettings dataSettings, string procedure)
         {
             var dataSet = new DataSet();
 
-            using (dataProvider)
+            using (dataSettings)
             {
-                dataProvider.Command.Connection = dataProvider.Connection;
-                dataProvider.Command.CommandType = CommandType.StoredProcedure;
-                dataProvider.Command.CommandText = procedure;
+                dataSettings.Command.Connection = dataSettings.Connection;
+                dataSettings.Command.CommandType = CommandType.StoredProcedure;
+                dataSettings.Command.CommandText = procedure;
 
-                dataProvider.Connection.Open();
+                dataSettings.Connection.Open();
 
-                dataProvider.Adapter.SelectCommand = dataProvider.Command;
-                dataProvider.Adapter.Fill(dataSet);
+                dataSettings.Adapter.SelectCommand = dataSettings.Command;
+                dataSettings.Adapter.Fill(dataSet);
             }
 
-            return dataSet.Tables;
+            return dataSet;
         }
     }
-
 }

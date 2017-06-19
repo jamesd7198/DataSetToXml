@@ -9,7 +9,8 @@ namespace DataSetToXml.DataSettingsHelper
         IDbConnection Connection { get; }
         IDbCommand Command { get; }
         IDbDataAdapter Adapter { get; }
-        IList<IDataParameter> Parameters { get; }
+
+        void AddParameter(IDataParameter parameter);
     }
 
 }

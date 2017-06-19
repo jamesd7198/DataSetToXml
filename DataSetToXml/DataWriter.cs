@@ -14,6 +14,7 @@ namespace DataSetToXml
                 IndentChars = "\t",
                 NamespaceHandling = NamespaceHandling.OmitDuplicates,
                 NewLineOnAttributes = true
+                
             };
 
             using (var stream = new StreamWriter(filepath))
@@ -32,13 +33,47 @@ namespace DataSetToXml
                 NamespaceHandling = NamespaceHandling.OmitDuplicates,
                 NewLineOnAttributes = true
             };
-
+            
             using (var stream = new StreamWriter(filepath))
             using (var writer = XmlWriter.Create(stream, settings))
             {
                 table.WriteXml(writer);
             }
         }
-    }
 
+        public static void WriteSchemaToXsdFile(DataSet dataSet, string filepath)
+        {
+            var settings = new XmlWriterSettings
+            {
+                Indent = true,
+                IndentChars = "\t",
+                NamespaceHandling = NamespaceHandling.OmitDuplicates,
+                NewLineOnAttributes = true
+
+            };
+
+            using (var stream = new StreamWriter(filepath))
+            using (var writer = XmlWriter.Create(stream, settings))
+            {
+                dataSet.WriteXmlSchema(writer);
+            }
+        }
+
+        public static void WriteDataSetToXmlFile(DataSet dataSet, string filepath)
+        {
+            var settings = new XmlWriterSettings
+            {
+                Indent = true,
+                IndentChars = "\t",
+                NamespaceHandling = NamespaceHandling.OmitDuplicates,
+                NewLineOnAttributes = true
+            };
+
+            using (var stream = new StreamWriter(filepath))
+            using (var writer = XmlWriter.Create(stream, settings))
+            {
+                dataSet.WriteXml(writer);
+            }
+        }
+    }
 }

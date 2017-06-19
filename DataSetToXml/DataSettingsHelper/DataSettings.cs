@@ -9,7 +9,6 @@ namespace DataSetToXml.DataSettingsHelper
         public IDbConnection Connection { get; }
         public IDbCommand Command { get; }
         public IDbDataAdapter Adapter { get; }
-        public IList<IDataParameter> Parameters { get; }
 
         public DataSettings(IDbConnection connection, IDbCommand command, IDbDataAdapter adapter,
             params IDataParameter[] parameters)
@@ -17,12 +16,17 @@ namespace DataSetToXml.DataSettingsHelper
             Connection = connection;
             Command = command;
             Adapter = adapter;
-            Parameters = new List<IDataParameter>();
 
             foreach (IDataParameter parameter in parameters)
             {
-                Parameters.Add(parameter);
+                Command.Parameters.Add(parameter);
             }
+        }
+
+        public void AddParameter(IDataParameter parameter)
+        {
+            if (!Command.Parameters.Contains(parameter))
+                Command.Parameters.Add(parameter);
         }
 
         public void Dispose()
